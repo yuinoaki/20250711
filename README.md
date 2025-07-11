@@ -1,6 +1,6 @@
 # GitHub Actions Java Demo Project
 
-このプロジェクトは、GitHub Actions を使用した Java プロジェクトの CI/CD パイプラインのデモです。
+このプロジェクトは、GitHub Actions を使用した Java プロジェクトの CI/CD パイプラインのデモです
 
 ## 機能
 
