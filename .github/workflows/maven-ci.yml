@@ -249,12 +249,16 @@ jobs:
         
         for version in 11 17; do
           if [ -f spotbugs-$version/spotbugsXml.xml ]; then
-            total_bugs=$(grep -c '<BugInstance' spotbugs-$version/spotbugsXml.xml || echo 0)
-            high_priority=$(grep -c 'priority="1"' spotbugs-$version/spotbugsXml.xml || echo 0)
+            total_bugs=$(grep -c '<BugInstance' spotbugs-$version/spotbugsXml.xml 2>/dev/null || echo 0)
+            high_priority=$(grep -c 'priority="1"' spotbugs-$version/spotbugsXml.xml 2>/dev/null || echo 0)
             
-            if [ $total_bugs -eq 0 ]; then
+            # Ensure variables contain only numbers
+            total_bugs=$(echo "$total_bugs" | tr -d '\n')
+            high_priority=$(echo "$high_priority" | tr -d '\n')
+            
+            if [ "$total_bugs" -eq 0 ]; then
               echo "| Java $version | ✅ Clean | 0 |" >> $GITHUB_STEP_SUMMARY
-            elif [ $high_priority -gt 0 ]; then
+            elif [ "$high_priority" -gt 0 ]; then
               echo "| Java $version | ⚠️ Warning | $total_bugs (including $high_priority high priority) |" >> $GITHUB_STEP_SUMMARY
             else
               echo "| Java $version | ⚠️ Warning | $total_bugs |" >> $GITHUB_STEP_SUMMARY
