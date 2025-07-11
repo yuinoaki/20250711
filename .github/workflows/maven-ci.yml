@@ -212,24 +212,105 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         
         echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "| Java Version | Test Files | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|--------------|------------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Java Version | Tests Run | Passed | Failed | Skipped | Time |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------------|-----------|--------|--------|---------|------|" >> $GITHUB_STEP_SUMMARY
         
         for version in 11 17; do
-          test_count=$(find test-results-$version -name "*.xml" | wc -l)
-          echo "| Java $version | $test_count test files | ✓ |" >> $GITHUB_STEP_SUMMARY
+          if [ -d test-results-$version ]; then
+            # Parse test results from XML files
+            total_tests=0
+            total_failures=0
+            total_errors=0
+            total_skipped=0
+            total_time=0
+            
+            for xml in test-results-$version/*.xml; do
+              if [ -f "$xml" ]; then
+                tests=$(grep -o 'tests="[0-9]*"' "$xml" | grep -o '[0-9]*' || echo 0)
+                failures=$(grep -o 'failures="[0-9]*"' "$xml" | grep -o '[0-9]*' || echo 0)
+                errors=$(grep -o 'errors="[0-9]*"' "$xml" | grep -o '[0-9]*' || echo 0)
+                skipped=$(grep -o 'skipped="[0-9]*"' "$xml" | grep -o '[0-9]*' || echo 0)
+                time=$(grep -o 'time="[0-9.]*"' "$xml" | grep -o '[0-9.]*' || echo 0)
+                
+                total_tests=$((total_tests + tests))
+                total_failures=$((total_failures + failures))
+                total_errors=$((total_errors + errors))
+                total_skipped=$((total_skipped + skipped))
+                total_time=$(echo "$total_time + $time" | bc)
+              fi
+            done
+            
+            passed=$((total_tests - total_failures - total_errors - total_skipped))
+            status="✅"
+            if [ $total_failures -gt 0 ] || [ $total_errors -gt 0 ]; then
+              status="❌"
+            fi
+            
+            echo "| Java $version | $total_tests | $passed | $((total_failures + total_errors)) | $total_skipped | ${total_time}s |" >> $GITHUB_STEP_SUMMARY
+          fi
         done
         
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Static Analysis Results" >> $GITHUB_STEP_SUMMARY
-        echo "| Java Version | Analysis Report |" >> $GITHUB_STEP_SUMMARY
-        echo "|--------------|----------------|" >> $GITHUB_STEP_SUMMARY
+        echo "## Static Analysis Results (SpotBugs)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         
         for version in 11 17; do
+          echo "### Java $version" >> $GITHUB_STEP_SUMMARY
+          
           if [ -f spotbugs-$version/spotbugsXml.xml ]; then
-            echo "| Java $version | SpotBugs report generated |" >> $GITHUB_STEP_SUMMARY
+            # Parse SpotBugs XML report
+            total_bugs=$(grep -c '<BugInstance' spotbugs-$version/spotbugsXml.xml || echo 0)
+            
+            if [ $total_bugs -eq 0 ]; then
+              echo "✅ **No bugs found!**" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ **Total bugs found: $total_bugs**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              # Count bugs by priority
+              high_priority=$(grep -c 'priority="1"' spotbugs-$version/spotbugsXml.xml || echo 0)
+              medium_priority=$(grep -c 'priority="2"' spotbugs-$version/spotbugsXml.xml || echo 0)
+              low_priority=$(grep -c 'priority="3"' spotbugs-$version/spotbugsXml.xml || echo 0)
+              
+              echo "| Priority | Count |" >> $GITHUB_STEP_SUMMARY
+              echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| High | $high_priority |" >> $GITHUB_STEP_SUMMARY
+              echo "| Medium | $medium_priority |" >> $GITHUB_STEP_SUMMARY
+              echo "| Low | $low_priority |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              # List bug categories
+              echo "**Bug Categories:**" >> $GITHUB_STEP_SUMMARY
+              categories=$(grep -o 'category="[^"]*"' spotbugs-$version/spotbugsXml.xml | sort | uniq -c | sort -nr)
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$categories" | while read count cat; do
+                category=$(echo $cat | sed 's/category="//' | sed 's/"//')
+                echo "$count occurrences: $category" >> $GITHUB_STEP_SUMMARY
+              done
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              
+              # List top 5 bug types
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Top Bug Types:**" >> $GITHUB_STEP_SUMMARY
+              bug_types=$(grep -o 'type="[^"]*"' spotbugs-$version/spotbugsXml.xml | sort | uniq -c | sort -nr | head -5)
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$bug_types" | while read count type; do
+                bug_type=$(echo $type | sed 's/type="//' | sed 's/"//')
+                echo "$count occurrences: $bug_type" >> $GITHUB_STEP_SUMMARY
+              done
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ **SpotBugs report not found**" >> $GITHUB_STEP_SUMMARY
           fi
+          echo "" >> $GITHUB_STEP_SUMMARY
         done
+        
+        # Add links to artifacts
+        echo "## 📎 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Test results and SpotBugs reports are available in the workflow artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- SpotBugs HTML reports provide detailed bug descriptions" >> $GITHUB_STEP_SUMMARY
 
   # ステージ6: すべてのチェックが成功したかの確認
   quality-gate:
