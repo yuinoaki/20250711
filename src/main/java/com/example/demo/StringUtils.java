@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import java.util.Locale;
+
 public class StringUtils {
     
     public String reverse(String input) {
@@ -13,7 +15,7 @@ public class StringUtils {
         if (input == null) {
             return false;
         }
-        String cleaned = input.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        String cleaned = input.replaceAll("[^a-zA-Z0-9]", "").toLowerCase(Locale.ROOT);
         return cleaned.equals(reverse(cleaned));
     }
     
@@ -35,6 +37,6 @@ public class StringUtils {
         if (input == null || input.isEmpty()) {
             return input;
         }
-        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
+        return input.substring(0, 1).toUpperCase(Locale.ROOT) + input.substring(1).toLowerCase(Locale.ROOT);
     }
 }
