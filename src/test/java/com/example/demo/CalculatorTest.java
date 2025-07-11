@@ -77,4 +77,46 @@ class CalculatorTest {
     void testFactorialNegative() {
         assertThrows(IllegalArgumentException.class, () -> calculator.factorial(-1));
     }
+    
+    @Test
+    void testFactorialOverflow() {
+        assertThrows(IllegalArgumentException.class, () -> calculator.factorial(13));
+    }
+    
+    @Test
+    void testAddVarargs() {
+        assertEquals(10, calculator.add(1, 2, 3, 4));
+        assertEquals(15, calculator.add(1, 2, 3, 4, 5));
+        assertEquals(0, calculator.add());
+        assertEquals(5, calculator.add(5));
+    }
+    
+    @Test
+    void testPower() {
+        assertEquals(8.0, calculator.power(2, 3), 0.0001);
+        assertEquals(1.0, calculator.power(5, 0), 0.0001);
+        assertEquals(16.0, calculator.power(4, 2), 0.0001);
+        assertEquals(27.0, calculator.power(3, 3), 0.0001);
+    }
+    
+    @Test
+    void testPowerNegativeExponent() {
+        assertThrows(IllegalArgumentException.class, () -> calculator.power(2, -1));
+    }
+    
+    @Test
+    void testGcd() {
+        assertEquals(6, calculator.gcd(12, 18));
+        assertEquals(1, calculator.gcd(7, 13));
+        assertEquals(5, calculator.gcd(15, 25));
+        assertEquals(12, calculator.gcd(-12, 24));
+    }
+    
+    @Test
+    void testLcm() {
+        assertEquals(36, calculator.lcm(12, 18));
+        assertEquals(91, calculator.lcm(7, 13));
+        assertEquals(0, calculator.lcm(0, 5));
+        assertEquals(12, calculator.lcm(4, 6));
+    }
 }
